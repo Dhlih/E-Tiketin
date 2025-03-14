@@ -16,34 +16,46 @@ const handleRegister = async (req, res) => {
     res.status(200).json(user);
   } catch (error) {
     console.log(error);
-    res.status(400).json({ msg: "failed to create user" });
+    res.status(400).json({ msg: "Failed to create user" });
   }
 };
 
 const handleLogin = async (req, res) => {
-  const { email } = req.body;
+  const { email, password } = req.body;
 
   try {
     const user = await User.findOne({ email });
-    const matchPassword = bcrypt.compareSync(req.body.password, user.password);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    const matchPassword = await bcrypt.compare(password, user.password);
+    if (!matchPassword) {
+      return res.status(401).json({ msg: "Incorrect password" });
+    }
 
     const token = jwt.sign(
       { id: user._id, name: user.name, email: user.email },
       process.env.SECRET_KEY,
-      {
-        expiresIn: "3d",
-      }
+      { expiresIn: "3d" }
     );
 
-    if (user && matchPassword) {
-      res
-        .cookie("token", token)
-        .status(200)
-        .json({ id: user.id, name: user.name, email: user.email });
-    }
+    // ✅ Kirim cookie yang benar (untuk cross-origin & HTTPS)
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,          // wajib true untuk HTTPS
+      sameSite: "None",      // wajib "None" untuk cross-origin
+      maxAge: 3 * 24 * 60 * 60 * 1000, // 3 hari
+    });
+
+    return res.status(200).json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+    });
   } catch (error) {
     console.log(error);
-    res.status(400).json({ msg: "no such user" });
+    res.status(500).json({ msg: "Login failed" });
   }
 };
 
@@ -59,8 +71,13 @@ const handleRefetch = async (req, res) => {
 
 const handleLogout = async (req, res) => {
   try {
+    // ✅ Hapus cookie dengan config yang sama
     res
-      .clearCookie("token", { sameSite: "none", secure: true })
+      .clearCookie("token", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+      })
       .status(200)
       .send("User logged out successfully!");
   } catch (err) {
