@@ -26,7 +26,7 @@ const Analysis = () => {
   const handleFetchData = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_REACT_APP_BACKEND_URL}/${user?.id}`
+        `${import.meta.env.VITE_REACT_APP_BACKEND_URL}/api/transactions/${user?.id}`
       );
       setItems(response.data);
       console.log(response.data);
