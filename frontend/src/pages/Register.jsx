@@ -127,7 +127,7 @@ const Register = () => {
             className="w-full text-white px-4 py-2 bg-black rounded-md text-sm cursor-pointer "
             onClick={handleRegister}
           >
-            Masuk
+            Daftar
           </button>
         </div>
 
